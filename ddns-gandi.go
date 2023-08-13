@@ -1,4 +1,5 @@
 // build:   GOARCH=mips64 go build -o ddns-gandi
+// build (for ERX): GOARCH=mipsle go build -o ddns-gandi
 // run:     /config/scripts/ddns-gandi -host myrouter -domain example.com -ifname eth0 -apiKey XXXXX
 package main
 
