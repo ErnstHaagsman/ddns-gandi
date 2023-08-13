@@ -17,13 +17,19 @@ import (
 )
 
 var (
-	apiKey string
-	domain string
-	host   string
-	ifname string
-	ipv4   string
-	ipv6   string
+	apiKey  string
+	domain  string
+	host    string
+	ifname  string
+	ipv4    string
+	ipv6    string
+	hasIpv6 bool
 )
+
+type HostRecord struct {
+	Rrset_type   string   `json:"rrset_type"`
+	Rrset_values []string `json:"rrset_values"`
+}
 
 func init() {
 	flag.StringVar(&apiKey, "apiKey", "", "API key to access gandi account")
@@ -63,6 +69,7 @@ func main() {
 			ipv4 = slices[0]
 		} else if 16 == len(ip) {
 			ipv6 = slices[0]
+			hasIpv6 = true
 		}
 	}
 
@@ -108,10 +115,6 @@ func main() {
 
 	res.Body.Close()
 
-	type HostRecord struct {
-		Rrset_type   string   `json:"rrset_type"`
-		Rrset_values []string `json:"rrset_values"`
-	}
 	var hostRecords []HostRecord
 	err = json.Unmarshal(body, &hostRecords)
 	if nil != err {
@@ -120,95 +123,7 @@ func main() {
 	}
 
 	if 0 == len(hostRecords) { // if (the host record doesn't already exist)
-		log.Printf("Attempting to create new host records.")
-
-		// create the records
-		hrec4 := HostRecord{
-			Rrset_type:   "A",
-			Rrset_values: []string{ipv4},
-		}
-
-		payload, err := json.Marshal(&hrec4)
-		if nil != err {
-			log.Printf("failed to serialize host record for IPv4: %v", err)
-			os.Exit(2)
-		}
-
-		req, err := http.NewRequest("POST", uri, bytes.NewBuffer(payload))
-		if nil != err {
-			log.Printf("failed to prepare IPv4 domain record creation request: %v", err)
-			os.Exit(2)
-		}
-
-		req.Header.Add("Authorization", fmt.Sprintf("Apikey %v", apiKey))
-		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("Accept", "application/json")
-
-		res, err := client.Do(req)
-		if nil != err {
-			log.Printf("failed to create IPv4 domain record: %v", err)
-			os.Exit(2)
-		}
-
-		body, err := io.ReadAll(res.Body)
-		if nil != err {
-			log.Printf("failed to read response body: %v", err)
-			os.Exit(2)
-		}
-
-		log.Printf("Create IPv4 host record result: [%v] %v", res.Status, string(body))
-
-		res.Body.Close()
-
-		if 201 != res.StatusCode {
-			log.Printf("failed to create IPv4 domain record")
-			os.Exit(2)
-		}
-
-		hrec6 := HostRecord{
-			Rrset_type:   "AAAA",
-			Rrset_values: []string{ipv6},
-		}
-
-		payload, err = json.Marshal(&hrec6)
-		if nil != err {
-			log.Printf("failed to serialize host record for IPv6: %v", err)
-			os.Exit(2)
-		}
-
-		req, err = http.NewRequest("POST", uri, bytes.NewBuffer(payload))
-		if nil != err {
-			log.Printf("failed to prepare IPv6 domain record creation request: %v", err)
-			os.Exit(2)
-		}
-
-		req.Header.Add("Authorization", fmt.Sprintf("Apikey %v", apiKey))
-		req.Header.Add("Content-Type", "application/json")
-		req.Header.Add("Accept", "application/json")
-
-		res, err = client.Do(req)
-		if nil != err {
-			log.Printf("failed to create IPv6 domain record: %v", err)
-			os.Exit(2)
-		}
-
-		body, err = io.ReadAll(res.Body)
-		if nil != err {
-			log.Printf("failed to read response body: %v", err)
-			os.Exit(2)
-		}
-
-		log.Printf("Create IPv6 host record result: [%v] %v", res.Status, string(body))
-
-		res.Body.Close()
-
-		if 201 != res.StatusCode {
-			log.Printf("failed to create IPv6 domain record")
-			os.Exit(2)
-		}
-
-		log.Printf("Host records created.")
-		os.Exit(0)
+		createNewHostRecords(uri, client)
 	}
 
 	// Verify the existing IP addresses
@@ -236,11 +151,15 @@ func main() {
 		Items: []HostRecord{{
 			Rrset_type:   "A",
 			Rrset_values: []string{ipv4},
-		}, {
+		},
+		},
+	}
+
+	if hasIpv6 {
+		updateItems.Items = append(updateItems.Items, HostRecord{
 			Rrset_type:   "AAAA",
 			Rrset_values: []string{ipv6},
-		},
-		},
+		})
 	}
 
 	payload, err := json.Marshal(&updateItems)
@@ -281,5 +200,101 @@ func main() {
 	}
 
 	log.Printf("Update complete.")
+	os.Exit(0)
+}
+
+func createNewHostRecords(uri string, client *http.Client) {
+	log.Printf("Attempting to create new host records.")
+
+	// create the records
+	hrec4 := HostRecord{
+		Rrset_type:   "A",
+		Rrset_values: []string{ipv4},
+	}
+
+	payload, err := json.Marshal(&hrec4)
+	if nil != err {
+		log.Printf("failed to serialize host record for IPv4: %v", err)
+		os.Exit(2)
+	}
+
+	req, err := http.NewRequest("POST", uri, bytes.NewBuffer(payload))
+	if nil != err {
+		log.Printf("failed to prepare IPv4 domain record creation request: %v", err)
+		os.Exit(2)
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Apikey %v", apiKey))
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+
+	res, err := client.Do(req)
+	if nil != err {
+		log.Printf("failed to create IPv4 domain record: %v", err)
+		os.Exit(2)
+	}
+
+	body, err := io.ReadAll(res.Body)
+	if nil != err {
+		log.Printf("failed to read response body: %v", err)
+		os.Exit(2)
+	}
+
+	log.Printf("Create IPv4 host record result: [%v] %v", res.Status, string(body))
+
+	res.Body.Close()
+
+	if 201 != res.StatusCode {
+		log.Printf("failed to create IPv4 domain record")
+		os.Exit(2)
+	}
+
+	if !hasIpv6 {
+		return
+	}
+
+	hrec6 := HostRecord{
+		Rrset_type:   "AAAA",
+		Rrset_values: []string{ipv6},
+	}
+
+	payload, err = json.Marshal(&hrec6)
+	if nil != err {
+		log.Printf("failed to serialize host record for IPv6: %v", err)
+		os.Exit(2)
+	}
+
+	req, err = http.NewRequest("POST", uri, bytes.NewBuffer(payload))
+	if nil != err {
+		log.Printf("failed to prepare IPv6 domain record creation request: %v", err)
+		os.Exit(2)
+	}
+
+	req.Header.Add("Authorization", fmt.Sprintf("Apikey %v", apiKey))
+	req.Header.Add("Content-Type", "application/json")
+	req.Header.Add("Accept", "application/json")
+
+	res, err = client.Do(req)
+	if nil != err {
+		log.Printf("failed to create IPv6 domain record: %v", err)
+		os.Exit(2)
+	}
+
+	body, err = io.ReadAll(res.Body)
+	if nil != err {
+		log.Printf("failed to read response body: %v", err)
+		os.Exit(2)
+	}
+
+	log.Printf("Create IPv6 host record result: [%v] %v", res.Status, string(body))
+
+	res.Body.Close()
+
+	if 201 != res.StatusCode {
+		log.Printf("failed to create IPv6 domain record")
+		os.Exit(2)
+	}
+
+	log.Printf("Host records created.")
 	os.Exit(0)
 }
