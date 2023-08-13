@@ -8,7 +8,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net"
 	"net/http"
@@ -89,7 +89,7 @@ func main() {
 	}
 
 	if 200 != res.StatusCode {
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if nil != err {
 			log.Printf("failed to read response body: %v", err)
 		}
@@ -98,7 +98,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	body, err := ioutil.ReadAll(res.Body)
+	body, err := io.ReadAll(res.Body)
 	if nil != err {
 		log.Printf("failed to read domain records: %v", err)
 		os.Exit(2)
@@ -150,7 +150,7 @@ func main() {
 			os.Exit(2)
 		}
 
-		body, err := ioutil.ReadAll(res.Body)
+		body, err := io.ReadAll(res.Body)
 		if nil != err {
 			log.Printf("failed to read response body: %v", err)
 			os.Exit(2)
@@ -192,7 +192,7 @@ func main() {
 			os.Exit(2)
 		}
 
-		body, err = ioutil.ReadAll(res.Body)
+		body, err = io.ReadAll(res.Body)
 		if nil != err {
 			log.Printf("failed to read response body: %v", err)
 			os.Exit(2)
@@ -265,7 +265,7 @@ func main() {
 		os.Exit(2)
 	}
 
-	body, err = ioutil.ReadAll(res.Body)
+	body, err = io.ReadAll(res.Body)
 	if nil != err {
 		log.Printf("failed to read response body: %v", err)
 		os.Exit(2)
