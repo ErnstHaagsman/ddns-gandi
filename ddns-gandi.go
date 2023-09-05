@@ -29,6 +29,7 @@ var (
 type HostRecord struct {
 	Rrset_type   string   `json:"rrset_type"`
 	Rrset_values []string `json:"rrset_values"`
+	Rrset_ttl    int      `json:"rrset_ttl"`
 }
 
 func init() {
@@ -151,6 +152,7 @@ func main() {
 		Items: []HostRecord{{
 			Rrset_type:   "A",
 			Rrset_values: []string{ipv4},
+			Rrset_ttl:    300,
 		},
 		},
 	}
@@ -159,6 +161,7 @@ func main() {
 		updateItems.Items = append(updateItems.Items, HostRecord{
 			Rrset_type:   "AAAA",
 			Rrset_values: []string{ipv6},
+			Rrset_ttl:    300,
 		})
 	}
 
@@ -210,6 +213,7 @@ func createNewHostRecords(uri string, client *http.Client) {
 	hrec4 := HostRecord{
 		Rrset_type:   "A",
 		Rrset_values: []string{ipv4},
+		Rrset_ttl:    300,
 	}
 
 	payload, err := json.Marshal(&hrec4)
@@ -256,6 +260,7 @@ func createNewHostRecords(uri string, client *http.Client) {
 	hrec6 := HostRecord{
 		Rrset_type:   "AAAA",
 		Rrset_values: []string{ipv6},
+		Rrset_ttl:    300,
 	}
 
 	payload, err = json.Marshal(&hrec6)
