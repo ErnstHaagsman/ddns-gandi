@@ -22,6 +22,7 @@ Change the owner/group of each file:
 - `chown root:root ddns-gandi.sh`
 
 Move the shell script into `/etc/dhcp/dhclient-exit-hooks.d/` and the binary into `/config/scripts/`.
+For ppp connections, move the shell script into `/etc/ppp/ip-up.d`.
 
 To run it manually the first time, execute the shell script. It will produce a log file: `/var/log/ddns-gandi.log`
 
